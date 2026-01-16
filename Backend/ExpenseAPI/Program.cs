@@ -4,9 +4,26 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.OpenApi.Models; // Add this for OpenApi types
+using Serilog;
+using Serilog.Events;
+using Microsoft.OpenApi.Models; 
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using ExpenseAPI.Validators;
+using ExpenseAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- UPDATE 4: Serilog Configuration ---
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -15,6 +32,12 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 builder.Services.AddEndpointsApiExplorer();
+
+// --- UPDATE 3: Validation & Error Handling ---
+builder.Services.AddValidatorsFromAssemblyContaining<CreateExpenseDtoValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // Enable CORS
 builder.Services.AddCors(options =>
@@ -66,6 +89,13 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// --- UPDATE 5: Redis Caching ---
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "ExpenseTracker:";
+});
+
 // --- UPDATE 2: JWT Authentication Configuration ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = jwtSettings.GetValue<string>("Key") ?? throw new InvalidOperationException("JWT Key is missing");
@@ -95,10 +125,15 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler(); 
+app.UseMiddleware<CorrelationIdMiddleware>(); // Add Correlation ID middleware
+app.UseSerilogRequestLogging(); // Add Serilog request logging
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    Console.WriteLine($"Swagger UI is available at: {builder.Configuration["ASPNETCORE_URLS"]?.Split(';')[0] ?? "http://localhost:5238"}/swagger/index.html");
 }
 
 app.UseHttpsRedirection();

@@ -15,5 +15,6 @@ namespace ExpenseAPI.Services
         Task<bool> UpdateExpenseAsync(Guid expenseId, UpdateExpenseDto dto, Guid userId);
         Task<bool> DeleteExpenseAsync(Guid expenseId, Guid userId);
         Task<decimal> GetTotalSpendingAsync(Guid userId, DateTime? startDate, DateTime? endDate);
+        Task<ExpenseSummaryDto> GetExpenseSummaryAsync(Guid userId, DateTime? startDate, DateTime? endDate);
     }
 }

@@ -6,16 +6,20 @@ using Microsoft.EntityFrameworkCore;
 using ExpenseAPI.Data;
 using ExpenseAPI.Models;
 using ExpenseAPI.Services.Dtos;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace ExpenseAPI.Services
 {
     public class ExpenseService : IExpenseService
     {
         private readonly AppDbContext _context;
+        private readonly IDistributedCache _cache;
 
-        public ExpenseService(AppDbContext context)
+        public ExpenseService(AppDbContext context, IDistributedCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<List<Expense>> GetExpensesByUserAsync(Guid userId)
@@ -131,6 +135,54 @@ namespace ExpenseAPI.Services
                 query = query.Where(e => e.Date <= endDate.Value);
 
             return await query.SumAsync(e => e.Amount);
+        }
+
+        public async Task<ExpenseSummaryDto> GetExpenseSummaryAsync(Guid userId, DateTime? startDate, DateTime? endDate)
+        {
+            // Create a unique cache key
+            string cacheKey = $"summary:{userId}:{startDate:yyyyMMdd}:{endDate:yyyyMMdd}";
+
+            // Try to get from cache
+            var cachedData = await _cache.GetStringAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                return JsonSerializer.Deserialize<ExpenseSummaryDto>(cachedData)!;
+            }
+
+            // Calculate summary
+            var expenses = await GetExpensesByUserAsync(userId);
+            if (startDate.HasValue)
+                expenses = expenses.Where(e => e.Date >= startDate.Value).ToList();
+            if (endDate.HasValue)
+                expenses = expenses.Where(e => e.Date <= endDate.Value).ToList();
+
+            var totalSpending = expenses.Sum(e => e.Amount);
+            var averageTransaction = expenses.Count > 0 ? expenses.Average(e => e.Amount) : 0m;
+            var byCategory = expenses
+                .GroupBy(e => e.CategoryId)
+                .Select(g => new ExpenseCategorySummary
+                {
+                    CategoryId = g.Key,
+                    Total = g.Sum(e => e.Amount),
+                    Count = g.Count()
+                })
+                .ToList();
+
+            var summary = new ExpenseSummaryDto
+            {
+                TotalSpending = totalSpending,
+                AverageTransaction = averageTransaction,
+                ByCategory = byCategory
+            };
+
+            // Save to cache with expiration
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            };
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(summary), cacheOptions);
+
+            return summary;
         }
     }
 }

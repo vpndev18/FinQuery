@@ -40,6 +40,9 @@ namespace ExpenseAPI.Controllers
                 if (userId == Guid.Empty)
                     return Unauthorized("User not authenticated.");
 
+                _logger.LogInformation("User {UserId} filtering expenses. Start: {StartDate}, End: {EndDate}, Category: {CategoryId}", 
+                    userId, startDate, endDate, categoryId);
+
                 List<Expense> expenses;
                 if (startDate.HasValue || endDate.HasValue)
                 {
@@ -102,31 +105,10 @@ namespace ExpenseAPI.Controllers
                 //if (userId == Guid.Empty)
                 //    return Unauthorized("User not authenticated.");
 
-                var expenses = await _expenseService.GetExpensesByUserAsync(userId);
-                if (startDate.HasValue)
-                    expenses = expenses.Where(e => e.Date >= startDate.Value).ToList();
-                if (endDate.HasValue)
-                    expenses = expenses.Where(e => e.Date <= endDate.Value).ToList();
+                _logger.LogInformation("User {UserId} requesting summary. Start: {StartDate}, End: {EndDate}", 
+                    userId, startDate, endDate);
 
-                var totalSpending = expenses.Sum(e => e.Amount);
-                var averageTransaction = expenses.Count > 0 ? expenses.Average(e => e.Amount) : 0m;
-                var byCategory = expenses
-                    .GroupBy(e => e.CategoryId)
-                    .Select(g => new ExpenseCategorySummary
-                    {
-                        CategoryId = g.Key,
-                        Total = g.Sum(e => e.Amount),
-                        Count = g.Count()
-                    })
-                    .ToList();
-
-                var summary = new ExpenseSummaryDto
-                {
-                    TotalSpending = totalSpending,
-                    AverageTransaction = averageTransaction,
-                    ByCategory = byCategory
-                };
-
+                var summary = await _expenseService.GetExpenseSummaryAsync(userId, startDate, endDate);
                 return Ok(summary);
             }
             catch (Exception ex)
@@ -247,18 +229,4 @@ namespace ExpenseAPI.Controllers
         }
     }
 
-    // DTOs for summary endpoint
-    public class ExpenseSummaryDto
-    {
-        public decimal TotalSpending { get; set; }
-        public decimal AverageTransaction { get; set; }
-        public List<ExpenseCategorySummary> ByCategory { get; set; }
-    }
-
-    public class ExpenseCategorySummary
-    {
-        public Guid CategoryId { get; set; }
-        public decimal Total { get; set; }
-        public int Count { get; set; }
-    }
 }

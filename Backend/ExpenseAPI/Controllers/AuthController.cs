@@ -22,11 +22,13 @@ namespace ExpenseAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        public AuthController(AppDbContext context, IConfiguration configuration, ILogger<AuthController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
         }
 
         // POST: /api/auth/register
@@ -77,6 +79,8 @@ namespace ExpenseAPI.Controllers
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized("Invalid credentials.");
 
+            _logger.LogInformation("User {Email} (ID: {UserId}) logged in successfully.", user.Email, user.UserId);
+
             var token = GenerateJwtToken(user);
             var expiresIn = 7 * 24 * 60 * 60; // 7 days in seconds
 
@@ -99,7 +103,7 @@ namespace ExpenseAPI.Controllers
 
         private string GenerateJwtToken(User user)
         {
-            var jwtKey = _configuration["Jwt:Key"];
+            var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing in configuration.");
             var jwtIssuer = _configuration["Jwt:Issuer"] ?? "ExpenseTrackerApp";
             var jwtAudience = _configuration["Jwt:Audience"] ?? "ExpenseTrackerUsers";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
