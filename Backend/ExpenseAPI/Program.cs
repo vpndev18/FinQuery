@@ -87,7 +87,11 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+    Console.WriteLine($"[DEBUG] Connection String: {connString}"); // Temporary Debug Log
+    options.UseSqlServer(connString);
+});
 
 // --- UPDATE 5: Redis Caching ---
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -128,6 +132,22 @@ var app = builder.Build();
 app.UseExceptionHandler(); 
 app.UseMiddleware<CorrelationIdMiddleware>(); // Add Correlation ID middleware
 app.UseSerilogRequestLogging(); // Add Serilog request logging
+
+// --- UPDATE: Apply Migrations Automatically ---
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        context.Database.Migrate();
+        Log.Information("Database migrated successfully.");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "An error occurred while migrating the database.");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
