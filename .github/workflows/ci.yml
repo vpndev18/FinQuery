@@ -8,7 +8,7 @@ on:
     #this is added to show "Run Workflow" on Actions screen on GitHub
     workflow_dispatch:
     
-    jobs:
+jobs:
     backend-build-test:
       name: Backend - Build & Test
       runs-on: ubuntu-latest
