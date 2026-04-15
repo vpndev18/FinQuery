@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { createExpense, updateExpense, getCategories } from '../services/api';
+import { createExpense, updateExpense, getCategories, getGroups, createGroupExpense } from '../services/api';
 
 const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
     const [categories, setCategories] = useState([]);
+    const [groups, setGroups] = useState([]);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
     const [formError, setFormError] = useState(null);
+
+    // Group Expense Toggles
+    const [isGroupExpense, setIsGroupExpense] = useState(false);
 
     const isEditMode = !!expense;
 
@@ -21,6 +25,7 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
             amount: 0,
             description: '',
             categoryId: '',
+            groupId: '',
             date: new Date().toISOString().split('T')[0],
         },
     });
@@ -28,18 +33,27 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
     const watchedAmount = watch('amount');
 
     useEffect(() => {
-        const fetchCategories = async () => {
+        const loadData = async () => {
             setIsLoadingCategories(true);
-            const result = await getCategories();
-            if (result.success) {
-                setCategories(result.data);
+
+            // Load Categories
+            const catResult = await getCategories();
+            if (catResult.success) {
+                setCategories(catResult.data);
             } else {
                 setFormError('Failed to load categories');
             }
+
+            // Load Groups
+            const groupResult = await getGroups();
+            if (groupResult.success) {
+                setGroups(groupResult.data);
+            }
+
             setIsLoadingCategories(false);
         };
 
-        fetchCategories();
+        loadData();
     }, []);
 
     useEffect(() => {
@@ -48,6 +62,13 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
             setValue('amount', expense.amount);
             setValue('description', expense.description || '');
             setValue('categoryId', expense.categoryId);
+
+            // If it's a group expense (assuming expense object has groupId)
+            if (expense.groupId) {
+                setIsGroupExpense(true);
+                setValue('groupId', expense.groupId);
+            }
+
             // Format date to YYYY-MM-DD
             const formattedDate = expense.date ? new Date(expense.date).toISOString().split('T')[0] : '';
             setValue('date', formattedDate);
@@ -59,12 +80,12 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
     const onSubmit = async (data) => {
         setFormError(null);
 
-        // Transform data to match backend expectations
+        // Transform data
         const expenseData = {
-            categoryId: data.categoryId, // Already a GUID string from the select
+            categoryId: data.categoryId,
             amount: parseFloat(data.amount),
             description: data.description || null,
-            date: new Date(data.date).toISOString() // Convert to ISO DateTime
+            date: new Date(data.date).toISOString()
         };
 
         console.log('Submitting expense data:', expenseData);
@@ -72,9 +93,19 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
         let result;
 
         if (isEditMode) {
+            // Updating logic (Assuming endpoints handle group updates transparently or we block it)
+            // For now, simple update
             result = await updateExpense(expense.expenseId, expenseData);
         } else {
-            result = await createExpense(expenseData);
+            // Creation Logic
+            if (isGroupExpense && data.groupId) {
+                // Shared Expense
+                const groupData = { ...expenseData, groupId: data.groupId };
+                result = await createGroupExpense(groupData);
+            } else {
+                // Personal Expense
+                result = await createExpense(expenseData);
+            }
         }
 
         if (result.success) {
@@ -83,13 +114,11 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
                     amount: 0,
                     description: '',
                     categoryId: '',
+                    groupId: '',
                     date: new Date().toISOString().split('T')[0],
                 });
+                setIsGroupExpense(false);
             }
-
-            // Show simple alert callback or console log as "toast" isn't strictly defined in env
-            // Ideally this would be a toast notification library
-            // alert(`Expense ${isEditMode ? 'updated' : 'created'} successfully`); 
 
             if (onSuccess) {
                 onSuccess();
@@ -99,6 +128,7 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
         }
     };
 
+    // Styles
     const containerStyle = {
         backgroundColor: 'white',
         padding: '1.5rem',
@@ -106,37 +136,14 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     };
 
-    const formGroupStyle = {
-        marginBottom: '1rem',
-    };
-
-    const labelStyle = {
-        display: 'block',
-        marginBottom: '0.5rem',
-        fontWeight: '500',
-        color: '#333',
-    };
-
-    const inputStyle = {
-        width: '100%',
-        padding: '0.625rem',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-        boxSizing: 'border-box',
-        fontSize: '1rem',
-    };
-
-    const errorTextStyle = {
-        color: '#dc3545',
-        fontSize: '0.875rem',
-        marginTop: '0.25rem',
-        display: 'block',
-    };
-
+    const formGroupStyle = { marginBottom: '1rem' };
+    const labelStyle = { display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#333' };
+    const inputStyle = { width: '100%', padding: '0.625rem', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '1rem' };
+    const errorTextStyle = { color: '#dc3545', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' };
     const buttonStyle = {
         width: '100%',
         padding: '0.75rem',
-        backgroundColor: isEditMode ? '#ffc107' : '#28a745', // Yellow for edit, Green for add
+        backgroundColor: isEditMode ? '#ffc107' : '#28a745',
         color: isEditMode ? '#000' : '#fff',
         border: 'none',
         borderRadius: '4px',
@@ -146,13 +153,13 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
         opacity: isSubmitting ? 0.7 : 1,
     };
 
-    const amountDisplayStyle = {
-        fontSize: '1.25rem',
-        fontWeight: 'bold',
-        color: '#28a745',
-        marginBottom: '1rem',
-        textAlign: 'center',
-        display: 'block',
+    const toggleLabelStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        cursor: 'pointer',
+        fontWeight: '500',
+        color: '#4f46e5'
     };
 
     return (
@@ -162,7 +169,7 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
             </h3>
 
             {watchedAmount > 0 && (
-                <div style={amountDisplayStyle}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#28a745', marginBottom: '1rem', textAlign: 'center' }}>
                     ₹ {parseFloat(watchedAmount).toFixed(2)}
                 </div>
             )}
@@ -174,6 +181,39 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)}>
+                {/* Group Expense Toggle */}
+                {!isEditMode && groups.length > 0 && (
+                    <div style={{ marginBottom: '1.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '4px' }}>
+                        <label style={toggleLabelStyle}>
+                            <input
+                                type="checkbox"
+                                checked={isGroupExpense}
+                                onChange={(e) => setIsGroupExpense(e.target.checked)}
+                                style={{ width: '1.2rem', height: '1.2rem' }}
+                            />
+                            Split with a Group?
+                        </label>
+
+                        {isGroupExpense && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <select
+                                    style={inputStyle}
+                                    {...register('groupId', { required: isGroupExpense ? 'Select a group' : false })}
+                                >
+                                    <option value="">-- Select Group --</option>
+                                    {groups.map(g => (
+                                        <option key={g.groupId} value={g.groupId}>{g.name}</option>
+                                    ))}
+                                </select>
+                                {errors.groupId && <span style={errorTextStyle}>{errors.groupId.message}</span>}
+                                <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                                    Cost will be split equally among all members.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div style={formGroupStyle}>
                     <label htmlFor="amount" style={labelStyle}>Amount (₹)</label>
                     <input
@@ -208,7 +248,6 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
                             </option>
                         ))}
                     </select>
-                    {isLoadingCategories && <span style={{ fontSize: '0.8rem', color: '#666' }}>Loading categories...</span>}
                     {errors.categoryId && <span style={errorTextStyle}>{errors.categoryId.message}</span>}
                 </div>
 
@@ -246,7 +285,7 @@ const ExpenseForm = ({ onSuccess, expense, categoryId: initialCategoryId }) => {
                     {isSubmitting ? (
                         <span>Processing...</span>
                     ) : (
-                        <span>{isEditMode ? 'Update Expense' : 'Add Expense'}</span>
+                        <span>{isEditMode ? 'Update Expense' : (isGroupExpense ? 'Add Group Expense' : 'Add Expense')}</span>
                     )}
                 </button>
             </form>

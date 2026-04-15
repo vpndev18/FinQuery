@@ -26,6 +26,13 @@ namespace ExpenseAPI.Models
         public string Email { get; set; }
 
         /// <summary>
+        /// User's display name (required, max 100 chars).
+        /// </summary>
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; }
+
+        /// <summary>
         /// Bcrypt password hash (required).
         /// </summary>
         [Required]
@@ -45,6 +52,11 @@ namespace ExpenseAPI.Models
         /// Indicates if the user is active (defaults to true).
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Soft delete flag (defaults to false).
+        /// </summary>
+        public bool IsDeleted { get; set; } = false;
 
         /// <summary>
         /// Navigation property for user's categories.

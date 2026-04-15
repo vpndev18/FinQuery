@@ -60,9 +60,9 @@ const getErrorMessage = (error) => {
   return error.message || 'An unexpected error occurred';
 };
 
-export const register = async (email, password, confirmPassword) => {
+export const register = async (name, email, password, confirmPassword) => {
   try {
-    const response = await api.post('/auth/register', { email, password, confirmPassword });
+    const response = await api.post('/auth/register', { name, email, password, confirmPassword });
     return { success: true, data: response.data };
   } catch (error) {
     console.error("Registration Exception:", error);
@@ -191,6 +191,73 @@ export const deleteCategory = async (id) => {
     return { success: true, data: response.data };
   } catch (error) {
     return { success: false, error: error.response?.data?.message || 'Error deleting category' };
+  }
+};
+
+// --- GROUPS (Splitwise Feature) ---
+
+export const getGroups = async () => {
+  try {
+    const response = await api.get('/groups');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+export const createGroup = async (name) => {
+  try {
+    const response = await api.post('/groups', { name });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+export const getGroupDetails = async (groupId) => {
+  try {
+    const response = await api.get(`/groups/${groupId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+export const addMemberToGroup = async (groupId, email) => {
+  try {
+    const response = await api.post(`/groups/${groupId}/members`, { email });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+export const createGroupExpense = async (data) => {
+  try {
+    const response = await api.post('/groups/expenses', data);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+// --- AI SERVICES ---
+
+export const chatWithAi = async (message) => {
+  try {
+    const response = await api.post('/ai/chat', { message });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+export const getAiForecast = async () => {
+  try {
+    const response = await api.get('/ai/forecast');
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
   }
 };
 

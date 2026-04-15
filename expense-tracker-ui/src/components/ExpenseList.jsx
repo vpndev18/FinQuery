@@ -9,7 +9,7 @@ const ExpenseList = ({ refreshTrigger, onEdit, onExpenseDeleted }) => {
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 9; // 3x3 grid looks nice
 
     useEffect(() => {
         fetchCategories();
@@ -36,22 +36,20 @@ const ExpenseList = ({ refreshTrigger, onEdit, onExpenseDeleted }) => {
 
         if (result.success) {
             setExpenses(result.data);
-            setCurrentPage(1); // Reset to first page on filter change
+            setCurrentPage(1);
         }
         setLoading(false);
     };
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this expense?')) {
-            setLoading(true); // Ideally handling deleting state per item, but global is simpler for now
             const result = await deleteExpense(id);
             if (result.success) {
-                fetchExpenses(); // Refresh list
+                fetchExpenses();
                 if (onExpenseDeleted) onExpenseDeleted();
             } else {
                 alert(result.error || 'Failed to delete expense');
             }
-            setLoading(false);
         }
     };
 
@@ -64,10 +62,9 @@ const ExpenseList = ({ refreshTrigger, onEdit, onExpenseDeleted }) => {
         setFilters({ startDate: '', endDate: '', categoryId: '' });
     };
 
-    // Helper functions
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        const options = { day: '2-digit', month: 'short', year: 'numeric' };
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
         return new Date(dateString).toLocaleDateString('en-GB', options);
     };
 
@@ -89,197 +86,186 @@ const ExpenseList = ({ refreshTrigger, onEdit, onExpenseDeleted }) => {
     const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
     // Styles
-    const containerStyle = {
-        backgroundColor: 'white',
+    const filterInputStyle = {
+        padding: '0.625rem',
         borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        overflow: 'hidden', // For table rounded corners
-        padding: '1rem',
-    };
-
-    const filterContainerStyle = {
-        display: 'flex',
-        gap: '1rem',
-        marginBottom: '1rem',
-        flexWrap: 'wrap',
-        alignItems: 'end',
-    };
-
-    const inputStyle = {
-        padding: '0.5rem',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-    };
-
-    const tableContainerStyle = {
-        overflowX: 'auto',
-    };
-
-    const tableStyle = {
+        border: '1px solid #d1d5db',
+        outline: 'none',
         width: '100%',
-        borderCollapse: 'collapse',
-        minWidth: '600px', // Ensure it doesn't squash too much on small screens
+        minWidth: '150px'
     };
 
-    const thStyle = {
-        textAlign: 'left',
-        padding: '0.75rem',
-        backgroundColor: '#f8f9fa',
-        borderBottom: '2px solid #dee2e6',
-        fontWeight: 'bold',
-    };
-
-    const tdStyle = {
-        padding: '0.75rem',
-        borderBottom: '1px solid #dee2e6',
-        verticalAlign: 'middle',
-    };
-
-    const actionButtonStyle = {
-        padding: '0.25rem 0.5rem',
-        marginRight: '0.5rem',
-        borderRadius: '4px',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-    };
+    const expenseCardStyle = (categoryColor) => ({
+        borderLeft: `5px solid ${categoryColor || '#ccc'}`,
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+        transition: 'all 0.2s',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        height: '100%',
+        position: 'relative'
+    });
 
     return (
-        <div style={containerStyle}>
-            <h3 style={{ margin: '0 0 1rem 0' }}>Transactions</h3>
-
-            {/* Filters */}
-            <div style={filterContainerStyle}>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Start Date</label>
-                    <input
-                        type="date"
-                        name="startDate"
-                        value={filters.startDate}
-                        onChange={handleFilterChange}
-                        style={inputStyle}
-                    />
-                </div>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem' }}>End Date</label>
-                    <input
-                        type="date"
-                        name="endDate"
-                        value={filters.endDate}
-                        onChange={handleFilterChange}
-                        style={inputStyle}
-                    />
-                </div>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Category</label>
-                    <select
-                        name="categoryId"
-                        value={filters.categoryId}
-                        onChange={handleFilterChange}
-                        style={inputStyle}
+        <div>
+            {/* Filters Section */}
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Filter Expenses</h3>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1' }}>
+                        <input
+                            type="date"
+                            name="startDate"
+                            value={filters.startDate}
+                            onChange={handleFilterChange}
+                            style={filterInputStyle}
+                            placeholder="Start Date"
+                        />
+                    </div>
+                    <div style={{ flex: '1' }}>
+                        <input
+                            type="date"
+                            name="endDate"
+                            value={filters.endDate}
+                            onChange={handleFilterChange}
+                            style={filterInputStyle}
+                            placeholder="End Date"
+                        />
+                    </div>
+                    <div style={{ flex: '1' }}>
+                        <select
+                            name="categoryId"
+                            value={filters.categoryId}
+                            onChange={handleFilterChange}
+                            style={filterInputStyle}
+                        >
+                            <option value="">All Categories</option>
+                            {categories.map(cat => (
+                                <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        onClick={resetFilters}
+                        className="btn btn-secondary"
+                        style={{ height: '42px' }}
                     >
-                        <option value="">All Categories</option>
-                        {categories.map(cat => (
-                            <option key={cat.categoryId} value={cat.categoryId}>{cat.name}</option>
-                        ))}
-                    </select>
+                        Reset
+                    </button>
                 </div>
-                <button
-                    onClick={resetFilters}
-                    style={{ ...actionButtonStyle, backgroundColor: '#6c757d', color: 'white', height: '36px' }}
-                >
-                    Reset Filters
-                </button>
             </div>
 
-            {/* Table */}
-            <div style={tableContainerStyle}>
+            {/* Expenses Grid */}
+            <div style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Transactions</h3>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        {expenses.length} records found
+                    </span>
+                </div>
+
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '2rem' }}>Loading expenses...</div>
+                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            border: '4px solid #f3f3f3',
+                            borderTop: '4px solid var(--primary-color)',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            margin: '0 auto 1rem'
+                        }}></div>
+                        <p>Loading expenses...</p>
+                        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                    </div>
                 ) : expenses.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>No expenses found.</div>
+                    <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+                        <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>No transactions found.</p>
+                        <p style={{ color: '#9ca3af' }}>Try adjusting filters or add a new expense.</p>
+                    </div>
                 ) : (
-                    <table style={tableStyle}>
-                        <thead>
-                            <tr>
-                                <th style={thStyle}>Date</th>
-                                <th style={thStyle}>Category</th>
-                                <th style={thStyle}>Description</th>
-                                <th style={{ ...thStyle, textAlign: 'center' }}>Amount</th>
-                                <th style={thStyle}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentExpenses.map((expense, index) => (
-                                <tr
-                                    key={expense.expenseId}
-                                    style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa' }}
-                                >
-                                    <td style={tdStyle}>{formatDate(expense.date)}</td>
-                                    <td style={tdStyle}>
-                                        <span
-                                            style={{
-                                                backgroundColor: expense.category?.color || '#eee', // Fallback color
-                                                color: '#fff', // Ideally contrast check, but assuming dark categories for now
-                                                padding: '0.2rem 0.5rem',
-                                                borderRadius: '12px',
-                                                fontSize: '0.8rem',
-                                                textShadow: '0 0 2px rgba(0,0,0,0.5)'
-                                            }}
-                                        >
+                    <div className="grid-view">
+                        {currentExpenses.map((expense) => (
+                            <div key={expense.expenseId} style={expenseCardStyle(expense.category?.color)} className="card">
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                                        <span className="badge" style={{
+                                            backgroundColor: (expense.category?.color || '#eee') + '20', // Light opacity background
+                                            color: expense.category?.color || '#666'
+                                        }}>
                                             {expense.category?.name || 'Uncategorized'}
                                         </span>
-                                    </td>
-                                    <td style={tdStyle}>{expense.description || '-'}</td>
-                                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: '500' }}>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            {formatDate(expense.date)}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                                         {formatAmount(expense.amount)}
-                                    </td>
-                                    <td style={tdStyle}>
-                                        <button
-                                            onClick={() => onEdit(expense)}
-                                            style={{ ...actionButtonStyle, backgroundColor: '#ffc107', color: '#000' }}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(expense.expenseId)}
-                                            style={{ ...actionButtonStyle, backgroundColor: '#dc3545', color: 'white' }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </div>
+                                    <p style={{
+                                        color: 'var(--text-secondary)',
+                                        margin: '0 0 1rem 0',
+                                        lineHeight: '1.5',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: '2',
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden'
+                                    }}>
+                                        {expense.description || 'No description provided'}
+                                    </p>
+                                </div>
+                                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={() => onEdit(expense)}
+                                        className="btn btn-secondary"
+                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(expense.expenseId)}
+                                        className="btn"
+                                        style={{
+                                            backgroundColor: '#fee2e2',
+                                            color: '#ef4444',
+                                            fontSize: '0.8rem',
+                                            padding: '0.4rem 0.8rem'
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
 
             {/* Pagination */}
             {expenses.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                    <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                        Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, expenses.length)} of {expenses.length} entries
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
+                    <button
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                        className="btn btn-secondary"
+                        style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    >
+                        &larr; Previous
+                    </button>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>
+                        Page {currentPage} of {totalPages}
                     </span>
-                    <div>
-                        <button
-                            onClick={prevPage}
-                            disabled={currentPage === 1}
-                            style={{ ...actionButtonStyle, backgroundColor: currentPage === 1 ? '#eee' : '#007bff', color: currentPage === 1 ? '#999' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
-                        >
-                            Previous
-                        </button>
-                        <span style={{ margin: '0 0.5rem', fontSize: '0.9rem' }}>
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                            onClick={nextPage}
-                            disabled={currentPage === totalPages}
-                            style={{ ...actionButtonStyle, backgroundColor: currentPage === totalPages ? '#eee' : '#007bff', color: currentPage === totalPages ? '#999' : 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
-                        >
-                            Next
-                        </button>
-                    </div>
+                    <button
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                        className="btn btn-secondary"
+                        style={{ opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                    >
+                        Next &rarr;
+                    </button>
                 </div>
             )}
         </div>

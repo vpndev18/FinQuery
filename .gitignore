@@ -44,3 +44,8 @@ Thumbs.db
 appsettings.Development.json
 *.pfx
 *.key
+
+# Build and run logs
+backend_*.txt
+build_log*.txt
+Backend/ExpenseAPI/build_errors*.txt

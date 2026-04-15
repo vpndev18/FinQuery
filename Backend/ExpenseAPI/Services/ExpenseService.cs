@@ -15,11 +15,13 @@ namespace ExpenseAPI.Services
     {
         private readonly AppDbContext _context;
         private readonly IDistributedCache _cache;
+        private readonly IVectorDbService _vectorDb;
 
-        public ExpenseService(AppDbContext context, IDistributedCache cache)
+        public ExpenseService(AppDbContext context, IDistributedCache cache, IVectorDbService vectorDb)
         {
             _context = context;
             _cache = cache;
+            _vectorDb = vectorDb;
         }
 
         public async Task<List<Expense>> GetExpensesByUserAsync(Guid userId)
@@ -72,6 +74,18 @@ namespace ExpenseAPI.Services
 
             _context.Expenses.Add(expense);
             await _context.SaveChangesAsync();
+
+            // Sync to Vector DB for AI features
+            try
+            {
+                await _vectorDb.UpsertExpenseEmbeddingAsync(expense);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't fail the transaction
+                // Log.Error(ex, "Failed to upsert embedding for expense {ExpenseId}", expense.ExpenseId);
+            }
+
             return expense;
         }
 

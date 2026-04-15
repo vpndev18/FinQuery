@@ -15,7 +15,7 @@ const Register = () => {
         watch
     } = useForm({
         mode: 'onBlur',
-        defaultValues: { email: '', password: '', confirmPassword: '' },
+        defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
     });
 
     const password = watch('password');
@@ -24,7 +24,7 @@ const Register = () => {
         setIsLoading(true);
         setError(null);
 
-        const result = await registerUser(data.email, data.password, data.confirmPassword);
+        const result = await registerUser(data.name, data.email, data.password, data.confirmPassword);
 
         if (result.success) {
             alert('Registration successful! Please login.');
@@ -36,139 +36,131 @@ const Register = () => {
         setIsLoading(false);
     };
 
-    const containerStyle = {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f5f5f5',
-    };
-
-    const formCardStyle = {
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-        maxWidth: '400px',
-    };
-
-    const inputGroupStyle = {
-        marginBottom: '1rem',
-    };
-
-    const labelStyle = {
-        display: 'block',
-        marginBottom: '0.5rem',
-        fontWeight: '500',
-    };
-
     const inputStyle = {
         width: '100%',
         padding: '0.75rem',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
+        borderRadius: '8px',
+        border: '1px solid #d1d5db',
         boxSizing: 'border-box',
-    };
-
-    const errorStyle = {
-        color: '#dc3545',
-        fontSize: '0.875rem',
-        marginTop: '0.25rem',
-        display: 'block',
-    };
-
-    const buttonStyle = {
-        width: '100%',
-        padding: '0.75rem',
-        backgroundColor: '#28a745',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: isLoading ? 'not-allowed' : 'pointer',
-        opacity: isLoading ? 0.7 : 1,
         fontSize: '1rem',
-        fontWeight: '500',
-        marginTop: '1rem',
+        marginTop: '0.5rem',
+        transition: 'border-color 0.2s',
+        outline: 'none'
     };
 
     return (
-        <div style={containerStyle}>
-            <div style={formCardStyle}>
-                <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Create Account</h2>
+        <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--text-primary)' }}>Create Account</h2>
+                <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Get started tracking your expenses today.</p>
+            </div>
 
-                {error && (
-                    <div style={{ ...errorStyle, backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' }}>
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <div style={inputGroupStyle}>
-                        <label htmlFor="email" style={labelStyle}>Email</label>
-                        <input
-                            id="email"
-                            type="email"
-                            style={inputStyle}
-                            placeholder="Enter your email"
-                            {...register('email', {
-                                required: 'Email is required',
-                                pattern: {
-                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Invalid email address',
-                                },
-                            })}
-                        />
-                        {errors.email && <span style={errorStyle}>{errors.email.message}</span>}
-                    </div>
-
-                    <div style={inputGroupStyle}>
-                        <label htmlFor="password" style={labelStyle}>Password</label>
-                        <input
-                            id="password"
-                            type="password"
-                            style={inputStyle}
-                            placeholder="Create password"
-                            {...register('password', {
-                                required: 'Password is required',
-                                minLength: { value: 8, message: 'Password must be at least 8 characters' },
-                                pattern: {
-                                    value: /^(?=.*[A-Z])(?=.*\d)/,
-                                    message: 'Password must contain at least one uppercase letter and one number'
-                                }
-                            })}
-                        />
-                        {errors.password && <span style={errorStyle}>{errors.password.message}</span>}
-                    </div>
-
-                    <div style={inputGroupStyle}>
-                        <label htmlFor="confirmPassword" style={labelStyle}>Confirm Password</label>
-                        <input
-                            id="confirmPassword"
-                            type="password"
-                            style={inputStyle}
-                            placeholder="Confirm password"
-                            {...register('confirmPassword', {
-                                required: 'Please confirm description',
-                                validate: value => value === password || 'The passwords do not match'
-                            })}
-                        />
-                        {errors.confirmPassword && <span style={errorStyle}>{errors.confirmPassword.message}</span>}
-                    </div>
-
-                    <button type="submit" style={buttonStyle} disabled={isLoading}>
-                        {isLoading ? 'Creating Account...' : 'Register'}
-                    </button>
-                </form>
-
-                <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
-                    <p>
-                        Already have an account?{' '}
-                        <Link to="/login" style={{ color: '#007bff', textDecoration: 'none' }}>
-                            Login here
-                        </Link>
-                    </p>
+            {error && (
+                <div style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#ef4444',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.5rem',
+                    textAlign: 'center',
+                    border: '1px solid #fecaca'
+                }}>
+                    {error}
                 </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label htmlFor="name" style={{ fontWeight: '500', color: 'var(--text-primary)' }}>Full Name</label>
+                    <input
+                        id="name"
+                        type="text"
+                        style={inputStyle}
+                        placeholder="Enter your full name"
+                        {...register('name', {
+                            required: 'Name is required',
+                            minLength: { value: 2, message: 'Name must be at least 2 characters' },
+                        })}
+                    />
+                    {errors.name && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{errors.name.message}</span>}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label htmlFor="email" style={{ fontWeight: '500', color: 'var(--text-primary)' }}>Email Address</label>
+                    <input
+                        id="email"
+                        type="email"
+                        style={inputStyle}
+                        placeholder="Enter your email"
+                        {...register('email', {
+                            required: 'Email is required',
+                            pattern: {
+                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                message: 'Invalid email address',
+                            },
+                        })}
+                    />
+                    {errors.email && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{errors.email.message}</span>}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label htmlFor="password" style={{ fontWeight: '500', color: 'var(--text-primary)' }}>Password</label>
+                    <input
+                        id="password"
+                        type="password"
+                        style={inputStyle}
+                        placeholder="Create password"
+                        {...register('password', {
+                            required: 'Password is required',
+                            minLength: { value: 8, message: 'Password must be at least 8 characters' },
+                            pattern: {
+                                value: /^(?=.*[A-Z])(?=.*\d)/,
+                                message: 'Password must contain at least one uppercase letter and one number'
+                            }
+                        })}
+                    />
+                    {errors.password && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{errors.password.message}</span>}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label htmlFor="confirmPassword" style={{ fontWeight: '500', color: 'var(--text-primary)' }}>Confirm Password</label>
+                    <input
+                        id="confirmPassword"
+                        type="password"
+                        style={inputStyle}
+                        placeholder="Confirm password"
+                        {...register('confirmPassword', {
+                            required: 'Please confirm password',
+                            validate: value => value === password || 'The passwords do not match'
+                        })}
+                    />
+                    {errors.confirmPassword && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{errors.confirmPassword.message}</span>}
+                </div>
+
+                <button
+                    type="submit"
+                    className="btn"
+                    style={{
+                        width: '100%',
+                        padding: '0.875rem',
+                        fontSize: '1.1rem',
+                        marginTop: '0.5rem',
+                        backgroundColor: 'var(--secondary-color)',
+                        color: 'white'
+                    }}
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Creating Account...' : 'Sign Up'}
+                </button>
+            </form>
+
+            <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.95rem' }}>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                    Already have an account?{' '}
+                    <Link to="/login" style={{ color: 'var(--primary-color)', fontWeight: '600', textDecoration: 'none' }}>
+                        Log in
+                    </Link>
+                </p>
             </div>
         </div>
     );

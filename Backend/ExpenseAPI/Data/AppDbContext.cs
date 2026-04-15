@@ -18,6 +18,9 @@ namespace ExpenseAPI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Expense> Expenses { get; set; }
+        public DbSet<Group> Groups { get; set; }
+        public DbSet<GroupMember> GroupMembers { get; set; }
+        public DbSet<ExpenseSplit> ExpenseSplits { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -65,6 +68,51 @@ namespace ExpenseAPI.Data
 
                 entity.Property(e => e.Amount)
                       .HasPrecision(10, 2);
+
+                // Group & PaidBy relationships
+                entity.HasOne(e => e.Group)
+                      .WithMany(g => g.Expenses)
+                      .HasForeignKey(e => e.GroupId)
+                      .OnDelete(DeleteBehavior.ClientSetNull); // Prevent multiple cascade paths
+
+                entity.HasOne(e => e.PaidByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.PaidByUserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // Group Member configuration
+            modelBuilder.Entity<GroupMember>(entity =>
+            {
+                entity.HasKey(gm => new { gm.GroupId, gm.UserId }); // Composite Key
+
+                entity.Property(gm => gm.Balance).HasPrecision(18, 2);
+
+                entity.HasOne(gm => gm.Group)
+                      .WithMany(g => g.Members)
+                      .HasForeignKey(gm => gm.GroupId)
+                      .OnDelete(DeleteBehavior.Cascade); // If group deleted, members linkage deleted
+
+                entity.HasOne(gm => gm.User)
+                      .WithMany()
+                      .HasForeignKey(gm => gm.UserId)
+                      .OnDelete(DeleteBehavior.NoAction); // Prevent cycles
+            });
+
+            // Expense Split configuration
+            modelBuilder.Entity<ExpenseSplit>(entity =>
+            {
+                entity.Property(es => es.Amount).HasPrecision(18, 2);
+
+                entity.HasOne(es => es.Expense)
+                      .WithMany() // Expense might have navigation to splits, but let's keep it simple for now or add if needed
+                      .HasForeignKey(es => es.ExpenseId)
+                      .OnDelete(DeleteBehavior.Cascade); // If expense deleted, splits deleted
+
+                entity.HasOne(es => es.User)
+                      .WithMany()
+                      .HasForeignKey(es => es.UserId)
+                      .OnDelete(DeleteBehavior.NoAction); // Prevent cycles
             });
         }
     }

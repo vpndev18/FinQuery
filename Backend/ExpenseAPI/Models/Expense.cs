@@ -66,6 +66,21 @@ namespace ExpenseAPI.Models
         /// Navigation property to the category.
         /// </summary>
         public Category Category { get; set; }
+
+        /// <summary>
+        /// Optional: Only set if this expense belongs to a group.
+        /// </summary>
+        [ForeignKey("Group")]
+        public Guid? GroupId { get; set; }
+
+        /// <summary>
+        /// The user who actually paid for this expense (might be different from the creator in a group context).
+        /// </summary>
+        [ForeignKey("PaidByUser")]
+        public Guid? PaidByUserId { get; set; }
+
+        public Group Group { get; set; }
+        public User PaidByUser { get; set; }
     }
 
 }

@@ -46,10 +46,11 @@ const CategoryManager = () => {
     const handleEdit = (category) => {
         setFormData({ name: category.name, color: category.color || '#3498db' });
         setEditingId(category.categoryId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this category?')) {
+        if (window.confirm('Are you sure you want to delete this category? This might affect existing expenses.')) {
             const result = await deleteCategory(id);
             if (result.success) {
                 fetchCategories();
@@ -65,137 +66,123 @@ const CategoryManager = () => {
         setError(null);
     };
 
-    const containerStyle = {
-        backgroundColor: 'white',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    };
-
-    const formStyle = {
-        display: 'flex',
-        gap: '1rem',
-        marginBottom: '2rem',
-        flexWrap: 'wrap',
-        alignItems: 'end',
-    };
-
-    const inputStyle = {
-        padding: '0.5rem',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-        fontSize: '1rem',
-    };
-
-    const buttonStyle = {
-        padding: '0.5rem 1rem',
-        borderRadius: '4px',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: '1rem',
-        fontWeight: '500',
-    };
-
-    const categoryItemStyle = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1rem',
-        marginBottom: '0.5rem',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '4px',
-        border: '1px solid #e9ecef',
-    };
-
     return (
-        <div style={containerStyle}>
-            <h3 style={{ marginTop: 0 }}>Manage Categories</h3>
+        <div>
+            {/* Form Section */}
+            <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid var(--secondary-color)' }}>
+                <h3 style={{ marginTop: 0 }}>{editingId ? 'Edit Category' : 'Create New Category'}</h3>
 
-            {error && (
-                <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' }}>
-                    {error}
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} style={formStyle}>
-                <div style={{ flex: '1', minWidth: '200px' }}>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>Category Name</label>
-                    <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="e.g., Food, Transport"
-                        required
-                        style={{ ...inputStyle, width: '100%' }}
-                    />
-                </div>
-
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>Color</label>
-                    <input
-                        type="color"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                        style={{ ...inputStyle, width: '60px', height: '38px', cursor: 'pointer' }}
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    style={{ ...buttonStyle, backgroundColor: editingId ? '#ffc107' : '#28a745', color: editingId ? '#000' : 'white' }}
-                >
-                    {editingId ? 'Update' : 'Add'} Category
-                </button>
-
-                {editingId && (
-                    <button
-                        type="button"
-                        onClick={handleCancel}
-                        style={{ ...buttonStyle, backgroundColor: '#6c757d', color: 'white' }}
-                    >
-                        Cancel
-                    </button>
+                {error && (
+                    <div style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#b91c1c',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        marginBottom: '1rem',
+                        border: '1px solid #fecaca'
+                    }}>
+                        {error}
+                    </div>
                 )}
-            </form>
 
-            <div>
-                <h4>Existing Categories</h4>
-                {loading ? (
-                    <p>Loading categories...</p>
-                ) : categories.length === 0 ? (
-                    <p style={{ color: '#666' }}>No categories yet. Add one above!</p>
-                ) : (
-                    categories.map((category) => (
-                        <div key={category.categoryId} style={categoryItemStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div
-                                    style={{
-                                        width: '30px',
-                                        height: '30px',
-                                        backgroundColor: category.color || '#ccc',
-                                        borderRadius: '4px',
-                                        border: '1px solid #ddd',
-                                    }}
-                                />
-                                <span style={{ fontWeight: '500' }}>{category.name}</span>
-                            </div>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'end' }}>
+                    <div style={{ flex: '1', minWidth: '250px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Category Name</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g., Food, Transport"
+                            required
+                            style={{
+                                padding: '0.75rem',
+                                borderRadius: '8px',
+                                border: '1px solid #d1d5db',
+                                width: '100%',
+                                fontSize: '1rem'
+                            }}
+                        />
+                    </div>
 
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
-                                    onClick={() => handleEdit(category)}
-                                    style={{ ...buttonStyle, backgroundColor: '#ffc107', color: '#000', padding: '0.25rem 0.75rem' }}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(category.categoryId)}
-                                    style={{ ...buttonStyle, backgroundColor: '#dc3545', color: 'white', padding: '0.25rem 0.75rem' }}
-                                >
-                                    Delete
-                                </button>
-                            </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Color Tag</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <input
+                                type="color"
+                                value={formData.color}
+                                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                                style={{ width: '50px', height: '45px', padding: '0', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                            />
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{formData.color}</span>
                         </div>
-                    ))
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            style={{ backgroundColor: editingId ? 'var(--accent-color)' : 'var(--secondary-color)' }}
+                        >
+                            {editingId ? 'Update Category' : 'Add Category'}
+                        </button>
+
+                        {editingId && (
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                className="btn btn-secondary"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                    </div>
+                </form>
+            </div>
+
+            {/* List Section */}
+            <div>
+                <h3 style={{ marginBottom: '1.5rem' }}>Your Categories</h3>
+                {loading ? (
+                    <p style={{ color: 'var(--text-secondary)' }}>Loading categories...</p>
+                ) : categories.length === 0 ? (
+                    <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+                        <p>No categories found.</p>
+                    </div>
+                ) : (
+                    <div className="grid-view" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                        {categories.map((category) => (
+                            <div key={category.categoryId} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            backgroundColor: category.color || '#ccc',
+                                            borderRadius: '8px',
+                                            flexShrink: 0
+                                        }}
+                                    />
+                                    <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{category.name}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                                    <button
+                                        onClick={() => handleEdit(category)}
+                                        className="btn btn-secondary"
+                                        style={{ flex: 1, fontSize: '0.85rem' }}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(category.categoryId)}
+                                        className="btn"
+                                        style={{ flex: 1, backgroundColor: '#fee2e2', color: '#ef4444', fontSize: '0.85rem' }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>

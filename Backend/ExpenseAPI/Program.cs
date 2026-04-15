@@ -11,6 +11,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using ExpenseAPI.Validators;
 using ExpenseAPI.Middleware;
+using Mscc.GenerativeAI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,7 +76,7 @@ builder.Services.AddSwaggerGen(options =>
             {
                 Reference = new OpenApiReference
                 {
-                    Type = ReferenceType.SecurityScheme,
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
@@ -98,6 +99,35 @@ builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "ExpenseTracker:";
+});
+
+// --- UPDATE 6: Splitwise Feature (MediatR & SignalR) ---
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+builder.Services.AddSignalR();
+
+// --- UPDATE 7: AI & RAG Configuration ---
+var geminiSettings = builder.Configuration.GetSection("Gemini");
+var geminiKey = geminiSettings["ApiKey"] ?? "";
+var geminiModel = geminiSettings["ModelId"] ?? "gemini-1.5-flash";
+var embeddingModel = geminiSettings["EmbeddingModelId"] ?? "text-embedding-004";
+
+builder.Services.AddSingleton(new GoogleAI(geminiKey, apiVersion: "v1beta"));
+
+builder.Services.AddScoped<IVectorDbService>(sp => 
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var googleAi = sp.GetRequiredService<GoogleAI>();
+    var model = googleAi.GenerativeModel(embeddingModel);
+    return new VectorDbService(config, model);
+});
+
+builder.Services.AddScoped<IAiService>(sp => 
+{
+    var googleAi = sp.GetRequiredService<GoogleAI>();
+    var model = googleAi.GenerativeModel(geminiModel);
+    var vectorDb = sp.GetRequiredService<IVectorDbService>();
+    var dbContext = sp.GetRequiredService<AppDbContext>();
+    return new AiService(model, vectorDb, dbContext);
 });
 
 // --- UPDATE 2: JWT Authentication Configuration ---
@@ -165,5 +195,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ExpenseAPI.Hubs.ExpenseHub>("/expenseHub");
 
 app.Run();

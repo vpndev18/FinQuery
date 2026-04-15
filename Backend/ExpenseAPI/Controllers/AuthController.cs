@@ -52,6 +52,7 @@ namespace ExpenseAPI.Controllers
             var user = new User
             {
                 UserId = Guid.NewGuid(),
+                Name = dto.Name.Trim(),
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 CreatedDate = DateTime.UtcNow,
@@ -136,10 +137,26 @@ namespace ExpenseAPI.Controllers
                 return false;
             return true;
         }
+
+        // GET: /api/auth/users
+        [Authorize]
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _context.Users
+                .Where(u => !u.IsDeleted)
+                .Select(u => new { u.UserId, u.Email })
+                .ToListAsync();
+            return Ok(users);
+        }
     }
 
     public class RegisterDto
     {
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; }
+
         [Required]
         [EmailAddress]
         [MaxLength(255)]
