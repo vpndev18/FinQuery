@@ -1,0 +1,86 @@
+name: CI - Build & Test
+#triggers
+on:
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main]
+    #this is added to show "Run Workflow" on Actions screen on GitHub
+    workflow_dispatch:
+    
+    jobs:
+    backend-build-test:
+      name: Backend - Build & Test
+      runs-on: ubuntu-latest
+      
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Setup .NET 8
+          uses: actions/setup-dotnet@v4
+          with:
+            dotnet-version: '8.0.x'
+
+        - name: Cache NuGet packages
+          uses: actions/cache@v4
+          with:
+            path: ~/.nuget/packages
+            key: ${{ runner.os }}-nuget-${{ hashFiles('Backend/**/*.csproj') }}
+            restore-keys: |
+              ${{ runner.os }}-nuget-
+
+        - name: Restore dependencies
+          working-directory: Backend/ExpenseAPI
+          run: dotnet restore
+
+        - name: Build
+          working-directory: Backend/ExpenseAPI
+          run: dotnet build --no-restore --configuration Release
+
+        - name: Run tests
+          working-directory: Backend/ExpenseAPI/Tests
+          run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults
+
+        - name: Upload backend test results
+          uses: actions/upload-artifact@v4
+          if: always()
+          with:
+            name: backend-test-results
+            path: 'Backend/ExpenseAPI/Tests/TestResults/**'
+
+    frontend-build-test:
+      name: Frontend - Build & Test
+      runs-on: ubuntu-latest
+      
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '18'
+            cache: 'npm'
+            cache-dependency-path: expense-tracker-ui/package-lock.json
+
+        - name: Install dependencies
+          working-directory: expense-tracker-ui
+          run: npm ci
+
+        - name: Run tests
+          working-directory: expense-tracker-ui
+          run: npm test -- --watchAll=false --passWithNoTests
+
+        - name: Build production bundle
+          working-directory: expense-tracker-ui
+          env:
+            CI: false
+          run: npm run build
+
+        - name: Upload frontend build
+          uses: actions/upload-artifact@v4
+          with:
+            name: frontend-build
+            path: expense-tracker-ui/build/
+    
