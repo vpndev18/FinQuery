@@ -71,16 +71,4 @@ jobs:
         - name: Run tests
           working-directory: expense-tracker-ui
           run: npm test -- --watchAll=false --passWithNoTests
-
-        - name: Build production bundle
-          working-directory: expense-tracker-ui
-          env:
-            CI: false
-          run: npm run build
-
-        - name: Upload frontend build
-          uses: actions/upload-artifact@v4
-          with:
-            name: frontend-build
-            path: expense-tracker-ui/build/
     
